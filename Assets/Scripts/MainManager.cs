@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
+using System.IO;
 
 public class MainManager : MonoBehaviour
 {
@@ -11,10 +12,14 @@ public class MainManager : MonoBehaviour
     public Rigidbody Ball;
 
     public Text ScoreText;
+    public Text bestScoreText;
     public GameObject GameOverText;
+    public GameObject returnButton;
+    public string playerName;
     
     private bool m_Started = false;
     private int m_Points;
+
     
     private bool m_GameOver = false;
 
@@ -22,6 +27,12 @@ public class MainManager : MonoBehaviour
     // Start is called before the first frame update
     void Start()
     {
+        if (Data.Instance != null)
+        {
+            bestScoreText.text = "Best Score: " + Data.Instance.highScorePlayerName + " " + Data.Instance.highScore;
+        }
+
+
         const float step = 0.6f;
         int perLine = Mathf.FloorToInt(4.0f / step);
         
@@ -72,5 +83,44 @@ public class MainManager : MonoBehaviour
     {
         m_GameOver = true;
         GameOverText.SetActive(true);
+        returnButton.SetActive(true);
+        
+        if (m_Points > Data.Instance.highScore)
+        {
+            Data.Instance.highScorePlayerName = Data.Instance.playerName;
+            Data.Instance.highScore = m_Points;
+            SaveScore();
+        }
+    }
+
+    [System.Serializable]
+    class SaveData
+    {
+        public int score;
+        public string playerName;
+    }
+
+    public void SaveScore()
+    {
+        SaveData data = new SaveData();
+        data.playerName = Data.Instance.highScorePlayerName;
+        data.score = Data.Instance.highScore;
+        
+        string json = JsonUtility.ToJson(data);
+
+        File.WriteAllText(Application.persistentDataPath + "/savefile.json", json);
+    }
+
+    public void LoadScore()
+    {
+        string path = Application.persistentDataPath + "/savefile.json";
+        if(File.Exists(path))
+        {
+            string json = File.ReadAllText(path);
+            SaveData data = JsonUtility.FromJson<SaveData>(json);
+
+            Data.Instance.highScore = data.score;
+            Data.Instance.highScorePlayerName = data.playerName;
+        }
     }
 }
